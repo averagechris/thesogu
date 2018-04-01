@@ -1,20 +1,19 @@
 extern crate actix;
 extern crate actix_web;
 extern crate openssl;
+extern crate futures;
 
-use actix_web::{Application, Error, HttpMessage, HttpRequest, HttpResponse, HttpServer, StatusCode};
+use actix_web::{Application, Method, HttpMessage, HttpRequest, HttpResponse, HttpServer, Result, StatusCode};
+use actix_web::fs::{NamedFile, StaticFiles};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+use futures::future::{FutureResult, result};
 
 use std::env;
 
 const DEV_HTTPS_PORT: &'static str = "8443";
 
-fn index(_req: HttpRequest) -> Result<HttpResponse, Error> {
-    let html = format!(r#"<!DOCTYPE html><html><head><title>thesogu</title></head><body><h1>its soooo guuuu</h1></body></html>"#);
-
-    Ok(HttpResponse::build(StatusCode::OK)
-        .content_type("text/html; charset=utf-8")
-        .body(&html)?)
+fn index(_req: HttpRequest) -> Result<NamedFile> {
+    Ok(NamedFile::open("public/html/index.html")?)
 }
 
 fn redirect_to_https(req: HttpRequest) -> HttpResponse {
@@ -73,8 +72,8 @@ fn main() {
 
     let _ = HttpServer::new(|| {
         Application::new()
+            .handler("/public", StaticFiles::new("./public", true))
             .default_resource(|r| r.f(index))
-            .resource("/", |r| r.f(index))
     }).bind(&https_ipaddr_port)
         .expect(&format!("Cannot bind to {}", &https_ipaddr_port))
         .start_ssl(ssl_builder)

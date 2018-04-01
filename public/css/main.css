@@ -1,0 +1,14 @@
+h1 {
+  font-size: 10rem;
+  text-align: center;
+}
+
+img {
+  display: block;
+  margin: auto;
+}
+
+.main-container {
+  text-align: center;
+  text-decoration: none;
+}
