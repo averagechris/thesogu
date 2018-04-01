@@ -1,0 +1,11 @@
+[package]
+authors = ["root"]
+name = "thesogu"
+version = "0.1.0"
+[dependencies]
+actix = "*"
+actix-web = { version="*", features=["alpn"] }
+env_logger = "*"
+openssl = { version="0.10" }
+serde = "*"
+serde_json = "*"
