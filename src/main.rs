@@ -1,19 +1,45 @@
 extern crate actix;
 extern crate actix_web;
 extern crate openssl;
-extern crate futures;
+#[macro_use]
+extern crate tera;
 
-use actix_web::{Application, Method, HttpMessage, HttpRequest, HttpResponse, HttpServer, Result, StatusCode};
+use actix_web::{Application, error, HttpMessage, HttpRequest, HttpResponse, HttpServer, Result,
+                Method};
 use actix_web::fs::{NamedFile, StaticFiles};
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
-use futures::future::{FutureResult, result};
 
 use std::env;
 
+struct ApplicationState {
+    template: tera::Tera,
+}
+
 const DEV_HTTPS_PORT: &'static str = "8443";
 
-fn index(_req: HttpRequest) -> Result<NamedFile> {
-    Ok(NamedFile::open("public/html/index.html")?)
+fn index(req: HttpRequest<ApplicationState>) -> Result<HttpResponse, error::Error> {
+    let mut context = tera::Context::new();
+    context.add(
+        "sogu_things",
+        &vec![
+            "sogu",
+            "tacos",
+            "hating evil corporations",
+            "drunk catan",
+            "tamales",
+            "non evil castros",
+        ],
+    );
+
+    let html = req.state()
+        .template
+        .render("index.html", &context)
+        .map_err(|_| error::ErrorInternalServerError("Template Error"))?;
+
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(html)
+        .map_err(|_| error::ErrorInternalServerError("Template Error"))
 }
 
 fn redirect_to_https(req: HttpRequest) -> HttpResponse {
@@ -47,8 +73,8 @@ fn main() {
     match env::var_os("THESOGU_DEV") {
         Some(_) => {
             println!("Running in development mode");
-            key_file.push_str("dev_key.pem");
-            cert_file.push_str("dev_cert.pem");
+            key_file.push_str(concat!(env!("CARGO_MANIFEST_DIR"), "/dev_key.pem"));
+            cert_file.push_str(concat!(env!("CARGO_MANIFEST_DIR"), "/dev_cert.pem"));
             ipaddr.push_str("127.0.0.1");
             http_port.push_str("8180");
             https_port.push_str(DEV_HTTPS_PORT);
@@ -71,16 +97,19 @@ fn main() {
     ssl_builder.set_certificate_chain_file(cert_file).unwrap();
 
     let _ = HttpServer::new(|| {
-        Application::new()
-            .handler("/public", StaticFiles::new("./public", true))
-            .default_resource(|r| r.f(index))
+        let tera = compile_templates!(concat!(env!("CARGO_MANIFEST_DIR"), "/templates/**/*"));
+
+        Application::with_state(ApplicationState { template: tera })
+            .handler("/public", StaticFiles::new(concat!(env!("CARGO_MANIFEST_DIR"), "/public"), true))
+            .resource("/", |r| r.method(Method::GET).f(index))
     }).bind(&https_ipaddr_port)
         .expect(&format!("Cannot bind to {}", &https_ipaddr_port))
         .start_ssl(ssl_builder)
         .unwrap();
 
-    let _ = HttpServer::new(|| Application::new().default_resource(|r| r.f(redirect_to_https)))
-        .bind(&http_ipaddr_port)
+    let _ = HttpServer::new(|| {
+        Application::new().default_resource(|r| r.f(redirect_to_https))
+    }).bind(&http_ipaddr_port)
         .expect(&format!("Cannot bind to {}", &http_ipaddr_port))
         .start();
 
