@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>thesogu</title>
+    <link rel="stylesheet" type="text/css" href="public/css/tachyons.min.css">
+    <link rel="stylesheet" type="text/css" href="public/css/main.css">
+</head>
+
+<body>
+    <h1 class="tracked lh-title dark-pink tc">its soooo guuuu</h1>
+    <hr>
+    <div class="">
+      <a href="#"
+        style="background-image: url(/public/images/steve_buscemi_all_american_hero.png);"
+        class="link center dt w-auto br4 pa4 tc grow hide-child cover bg-center w-80-ns">
+        <span class="dark-pink dtc v-mid h-100 child bg-black-40 pa5 f3 sbg-black-40">9/11 firefighting hero</span>
+      </a>
+        <h2 class="dark-pink lh-title">Things that are sogu</h2>
+        <ul>
+            {% for thing in sogu_things %}
+            <li>{{thing}}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+
+</html>
